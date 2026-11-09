@@ -1,0 +1,22 @@
+{
+  "name": "cullinari-home",
+  "private": true,
+  "type": "module",
+  "description": "cullinari.com — landing page, client onboarding dashboard and team review console",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm start -w server",
+    "create-admin": "npm run create-admin -w server --"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

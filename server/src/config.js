@@ -1,0 +1,37 @@
+import path from 'node:path';
+
+const env = process.env;
+const isProd = env.NODE_ENV === 'production';
+
+function required(name, devFallback) {
+  const v = env[name];
+  if (v) return v;
+  if (!isProd && devFallback !== undefined) return devFallback;
+  throw new Error(`Missing environment variable ${name}`);
+}
+
+export const config = {
+  isProd,
+  port: Number(env.PORT) || 4000,
+  appUrl: (env.APP_URL || 'http://localhost:5173').replace(/\/$/, ''),
+  mongoUri: required('MONGODB_URI', 'mongodb://127.0.0.1:27017/cullinari'),
+  jwtSecret: required('JWT_SECRET', 'dev-only-secret'),
+  encryptionKey: required('ENCRYPTION_KEY', '0'.repeat(64)),
+  paystack: {
+    secretKey: env.PAYSTACK_SECRET_KEY || '',
+    planCodes: {
+      starter: env.PAYSTACK_PLAN_STARTER || '',
+      growth: env.PAYSTACK_PLAN_GROWTH || '',
+      pro: env.PAYSTACK_PLAN_PRO || '',
+    },
+  },
+  mail: {
+    host: env.SMTP_HOST || '',
+    port: Number(env.SMTP_PORT) || 587,
+    user: env.SMTP_USER || '',
+    pass: env.SMTP_PASS || '',
+    from: env.MAIL_FROM || 'Cullinari <hello@cullinari.com>',
+    team: env.TEAM_EMAIL || '',
+  },
+  uploadDir: path.resolve(env.UPLOAD_DIR || './uploads'),
+};
