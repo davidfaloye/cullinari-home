@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import VerifyBanner from '../components/VerifyBanner.jsx';
+import PlanChange from '../components/PlanChange.jsx';
 import DashShell, { fmtDate } from '../components/DashShell.jsx';
 import ApplicationForm, { Summary } from '../components/ApplicationForm.jsx';
 import { FormError } from '../components/Form.jsx';
@@ -129,6 +132,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [app, setApp] = useState(null);
   const [error, setError] = useState('');
+  const [params] = useSearchParams();
+  const upgradedTo = getPlan(params.get('upgraded'));
 
   useEffect(() => {
     api
@@ -160,6 +165,12 @@ export default function Dashboard() {
         </aside>
 
         <div className="dash__content">
+          <VerifyBanner />
+          {upgradedTo && s === 'live' && app.plan === upgradedTo.code && (
+            <div className="notice notice--ok" role="status">
+              <p><b>You are now on {upgradedTo.name}.</b> The new limits apply now. Our team will contact you to set up the new app features.</p>
+            </div>
+          )}
           {s === 'changes_requested' && (
             <div className="notice notice--warn" role="status">
               <p><b>Our team asked for a few changes before approving:</b></p>
@@ -218,6 +229,7 @@ export default function Dashboard() {
           )}
 
           {s === 'live' && <Live app={app} />}
+          {s === 'live' && <PlanChange onChange={setApp} />}
         </div>
       </div>
     </DashShell>

@@ -13,6 +13,7 @@ import applicationRoutes from './routes/applications.js';
 import paymentRoutes, { webhookHandler } from './routes/payments.js';
 import adminRoutes from './routes/admin.js';
 import fileRoutes from './routes/files.js';
+import planRoutes from './routes/plan.js';
 import { PLANS, EXTRA_OPTIONS, MENU_LAYOUTS } from '../../shared/plans.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,7 @@ app.get('/api/plans', (_req, res) => res.json({ plans: PLANS, extraOptions: EXTR
 app.use('/api/auth', authRoutes);
 app.use('/api/application', applicationRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/plan', planRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/files', fileRoutes);
 app.use('/api', notFound);

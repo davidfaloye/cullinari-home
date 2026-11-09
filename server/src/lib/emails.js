@@ -1,6 +1,6 @@
 // Every email the platform sends, in one place. Each builder returns { subject, text, html }.
 import { config } from '../config.js';
-import { formatNaira, getPlan } from '../../../shared/plans.js';
+import { formatNaira, getPlan, describeLimits } from '../../../shared/plans.js';
 import { sendMail } from './mailer.js';
 
 const INDIGO = '#22306e';
@@ -40,14 +40,23 @@ function build(subject, body) {
 }
 
 export const templates = {
-  welcome: (user) =>
-    build('Welcome to Cullinari', {
+  welcome: (user, verifyUrl) =>
+    build('Confirm your email to finish setting up Cullinari', {
       heading: `Welcome, ${user.firstName}`,
       paragraphs: [
-        `Your Cullinari account for ${user.restaurantName} is ready.`,
-        'Next, open your dashboard, choose a plan and send us the details we need to build your ordering app and admin dashboard. It takes about ten minutes.',
+        `Your Cullinari account for ${user.restaurantName} is ready. Confirm this email address so we can send you approvals, receipts and your app login.`,
+        'After that, choose a plan in your dashboard and send us the details we need to build your ordering app and admin dashboard. It takes about ten minutes.',
       ],
-      button: { label: 'Open your dashboard', url: dashboard() },
+      button: { label: 'Confirm my email', url: verifyUrl },
+      footnote: 'The link works for 48 hours. If you did not create this account, ignore this email.',
+    }),
+
+  verifyEmail: (user, verifyUrl) =>
+    build('Confirm your email for Cullinari', {
+      heading: 'Confirm your email address',
+      paragraphs: [`Hi ${user.firstName}, use the button below to confirm ${user.email} for your Cullinari account.`],
+      button: { label: 'Confirm my email', url: verifyUrl },
+      footnote: 'The link works for 48 hours and replaces any earlier link. If you did not ask for this, ignore this email.',
     }),
 
   submitted: (user, app) =>
@@ -134,6 +143,35 @@ export const templates = {
         'Your Play Store link, admin address and login details are in your Cullinari dashboard. Change the password the first time you sign in.',
       ],
       button: { label: 'See your app and login', url: dashboard() },
+    }),
+
+  upgraded: (user, app, change) =>
+    build(`You are now on ${getPlan(change.to)?.name}`, {
+      heading: `Upgraded to ${getPlan(change.to)?.name}`,
+      paragraphs: [
+        `Thanks, ${user.firstName}. ${app.details.businessName} moved from ${getPlan(change.from)?.name} to ${getPlan(change.to)?.name}, and the new limits apply now.`,
+        `You paid ${formatNaira(change.amount)}: ${formatNaira(change.setupDiff)} setup difference and ${formatNaira(change.proratedMonthly)} for the rest of this billing month. From your next renewal, the monthly fee is ${formatNaira(getPlan(change.to)?.monthly)}.`,
+        'Our team will contact you to set up the new app features, such as your splash screen and menu layout, and then publish an update to your app.',
+      ],
+      button: { label: 'Open your dashboard', url: dashboard() },
+    }),
+
+  downgradeScheduled: (user, app) =>
+    build(`Your plan changes to ${getPlan(app.pendingPlan)?.name} on ${fmtDate(app.pendingPlanAt)}`, {
+      heading: 'Plan change scheduled',
+      paragraphs: [
+        `Hi ${user.firstName}, ${app.details.businessName} stays on ${getPlan(app.plan)?.name} until ${fmtDate(app.pendingPlanAt)}. After that you are on ${getPlan(app.pendingPlan)?.name} at ${formatNaira(getPlan(app.pendingPlan)?.monthly)} a month.`,
+        `${getPlan(app.pendingPlan)?.name} allows ${describeLimits(getPlan(app.pendingPlan))}. Nothing is deleted: anything above those limits becomes read-only, and you choose what stays active in your admin dashboard.`,
+        'You can cancel this change from your Cullinari dashboard any time before that date.',
+      ],
+      button: { label: 'Open your dashboard', url: dashboard() },
+    }),
+
+  teamPlanChange: (user, app, summary) =>
+    build(`Plan change: ${app.details.businessName}`, {
+      heading: 'Plan change',
+      paragraphs: [summary, `Contact: ${user.firstName} ${user.lastName}, ${user.email}, ${user.phone}`],
+      button: { label: 'Open in the console', url: `${config.appUrl}/admin/applications/${app._id}` },
     }),
 
   paymentFailed: (user, app) =>

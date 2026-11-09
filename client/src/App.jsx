@@ -7,6 +7,7 @@ import Login from './pages/Login.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Terms from './pages/Terms.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import PaymentReturn from './pages/PaymentReturn.jsx';
 import AdminList from './pages/admin/AdminList.jsx';
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/dashboard" element={<RequireAuth><Dashboard /></RequireAuth>} />
         <Route path="/dashboard/payment" element={<RequireAuth><PaymentReturn /></RequireAuth>} />
         <Route path="/admin" element={<RequireAuth admin><AdminList /></RequireAuth>} />

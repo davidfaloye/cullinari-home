@@ -1,5 +1,6 @@
 import { decrypt } from './crypto.js';
 import { firstPayment } from '../../../shared/plans.js';
+import { currentPeriod } from './billing.js';
 
 function file(f) {
   if (!f || !f.filename) return null;
@@ -51,6 +52,13 @@ export function serializeApplication(app, { forAdmin = false } = {}) {
           deliveredAt: o.delivery.deliveredAt,
         }
       : null,
+    pendingPlan: o.pendingPlan || null,
+    pendingPlanAt: o.pendingPlanAt || null,
+    billingPeriod: o.payment?.paidAt ? currentPeriod(o) : null,
+    planChanges: (o.planChanges || []).map((c) => ({
+      kind: c.kind, from: c.from, to: c.to, status: c.status, amount: c.amount,
+      reference: c.reference, requestedAt: c.requestedAt, effectiveAt: c.effectiveAt,
+    })),
     user,
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,

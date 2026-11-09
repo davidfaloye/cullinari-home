@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import { TextField, TextArea, Field, FormError } from './Form.jsx';
 import FileUpload from './FileUpload.jsx';
-import { PLANS, EXTRA_OPTIONS, MENU_LAYOUTS, getPlan, formatNaira } from '../../../shared/plans.js';
+import { PLANS, EXTRA_OPTIONS, MENU_LAYOUTS, getPlan, formatNaira, describeLimits } from '../../../shared/plans.js';
 
 const STEPS = ['Plan', 'Restaurant', 'App look', 'Menu and ordering', 'Review and send'];
 
@@ -58,7 +58,13 @@ export default function ApplicationForm({ app, user, onChange }) {
   const top = useRef(null);
   const p = getPlan(plan);
 
+  const firstRender = useRef(true);
   useEffect(() => {
+    // Scroll to the top of the form when moving between steps, but not on first load.
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
     top.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [step]);
 
@@ -152,9 +158,7 @@ export default function ApplicationForm({ app, user, onChange }) {
                   <span className="plan-pick__name">{x.name}</span>
                   <span className="plan-pick__price">{formatNaira(x.monthly)} a month</span>
                   <span className="plan-pick__setup">+ {formatNaira(x.setup)} setup, once</span>
-                  <span className="plan-pick__caps">
-                    {x.rows.slice(0, 3).map(([k, v]) => `${v} ${k.toLowerCase()}`).join(', ')}
-                  </span>
+                  <span className="plan-pick__caps">{describeLimits(x)}</span>
                   <span className="plan-pick__inc">{x.inc.join('. ')}.</span>
                 </label>
               ))}

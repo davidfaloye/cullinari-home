@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { User } from '../models/User.js';
 import { ah, HttpError } from '../middleware/errors.js';
-import { setSession, clearSession } from '../middleware/auth.js';
+import { setSession, clearSession, requireAuth } from '../middleware/auth.js';
 import { notify } from '../lib/emails.js';
 import { randomToken, sha256 } from '../lib/crypto.js';
 import { config } from '../config.js';
@@ -14,7 +14,18 @@ export const TERMS_VERSION = '2026-11';
 const router = Router();
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false });
-router.use(['/login', '/signup', '/forgot-password', '/reset-password'], limiter);
+router.use(['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/resend-verification'], limiter);
+
+const VERIFY_TTL_MS = 48 * 60 * 60 * 1000;
+
+// Gives the user a fresh confirmation link (older links stop working) and returns its URL.
+async function issueVerifyLink(user) {
+  const token = randomToken();
+  user.verifyTokenHash = sha256(token);
+  user.verifyTokenExpires = new Date(Date.now() + VERIFY_TTL_MS);
+  await user.save();
+  return `${config.appUrl}/verify-email?token=${token}&email=${encodeURIComponent(user.email)}`;
+}
 
 const phoneRe = /^\+?[0-9\s-]{10,16}$/;
 const password = z.string().min(8, 'Use at least 8 characters for your password.').max(128);
@@ -47,8 +58,9 @@ router.post(
       termsVersion: TERMS_VERSION,
     });
 
+    const verifyUrl = await issueVerifyLink(user);
     setSession(res, user);
-    notify(user.email, 'welcome', user);
+    notify(user.email, 'welcome', user, verifyUrl);
     res.status(201).json({ user: user.toPublic() });
   })
 );
@@ -80,6 +92,38 @@ router.get('/me', (req, res) => {
 });
 
 router.post(
+  '/verify-email',
+  ah(async (req, res) => {
+    const { email, token } = z.object({ email: z.string().trim().toLowerCase().email(), token: z.string().min(10) }).parse(req.body);
+    const user = await User.findOne({ email });
+    if (user?.emailVerifiedAt) {
+      setSession(res, user);
+      return res.json({ user: user.toPublic(), alreadyVerified: true });
+    }
+    if (!user || user.verifyTokenHash !== sha256(token) || !(user.verifyTokenExpires > new Date())) {
+      throw new HttpError(400, 'This confirmation link has expired or was replaced by a newer one. Sign in and send a new link.');
+    }
+    user.emailVerifiedAt = new Date();
+    user.verifyTokenHash = undefined;
+    user.verifyTokenExpires = undefined;
+    await user.save();
+    setSession(res, user);
+    res.json({ user: user.toPublic() });
+  })
+);
+
+router.post(
+  '/resend-verification',
+  requireAuth,
+  ah(async (req, res) => {
+    if (req.user.emailVerifiedAt) return res.json({ ok: true, alreadyVerified: true });
+    const url = await issueVerifyLink(req.user);
+    notify(req.user.email, 'verifyEmail', req.user, url);
+    res.json({ ok: true });
+  })
+);
+
+router.post(
   '/forgot-password',
   ah(async (req, res) => {
     const { email } = z.object({ email: z.string().trim().toLowerCase().email('Enter a valid email address.') }).parse(req.body);
@@ -106,6 +150,8 @@ router.post(
     const user = await User.findOne({ email, resetTokenHash: sha256(token), resetTokenExpires: { $gt: new Date() } });
     if (!user) throw new HttpError(400, 'This reset link has expired or was already used. Ask for a new one.');
     user.passwordHash = await bcrypt.hash(pw, 12);
+    // The reset link reached their inbox, so the address is confirmed.
+    user.emailVerifiedAt = user.emailVerifiedAt || new Date();
     user.resetTokenHash = undefined;
     user.resetTokenExpires = undefined;
     await user.save();

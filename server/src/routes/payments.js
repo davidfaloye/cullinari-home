@@ -3,12 +3,13 @@ import express from 'express';
 import { Application } from '../models/Application.js';
 import { User } from '../models/User.js';
 import { ah, HttpError } from '../middleware/errors.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireVerified } from '../middleware/auth.js';
 import { serializeApplication } from '../lib/serialize.js';
 import { initializeTransaction, verifyTransaction, createSubscription, validSignature } from '../lib/paystack.js';
 import { deliveryWindow } from '../lib/businessDays.js';
 import { notify, notifyTeam } from '../lib/emails.js';
-import { firstPayment } from '../../../shared/plans.js';
+import { firstPayment, getPlan } from '../../../shared/plans.js';
+import { addMonths, currentPeriod, swapSubscription } from '../lib/billing.js';
 import { config } from '../config.js';
 
 const router = Router();
@@ -58,8 +59,7 @@ async function recordFirstPayment(tx) {
   const planCode = config.paystack.planCodes[updated.plan];
   if (planCode && tx.authorization?.reusable && tx.customer?.customer_code) {
     try {
-      const start = new Date(paidAt);
-      start.setMonth(start.getMonth() + 1);
+      const start = addMonths(paidAt, 1);
       const sub = await createSubscription({
         customer: tx.customer.customer_code,
         plan: planCode,
@@ -83,10 +83,69 @@ async function recordFirstPayment(tx) {
   return updated;
 }
 
+// Records a paid upgrade exactly once: switches the plan now and moves the monthly
+// subscription to the new price from the next renewal.
+async function recordUpgrade(tx) {
+  const m = tx.metadata || {};
+  const app = await Application.findById(m.applicationId);
+  if (!app) return null;
+  if (app.planChanges.some((c) => c.reference === tx.reference)) return app; // already recorded
+  if (tx.status !== 'success' || tx.currency !== 'NGN' || tx.amount < Number(m.total) * 100) {
+    console.warn(`[paystack] ignoring upgrade ${tx.reference}: status=${tx.status} amount=${tx.amount}`);
+    return app;
+  }
+  if (app.plan !== m.from) {
+    // Plan changed some other way after checkout started. Keep the money on record for the team to sort out.
+    console.warn(`[paystack] upgrade ${tx.reference} expected plan ${m.from} but app is on ${app.plan}`);
+    notifyTeam('teamPlanChange', await User.findById(app.user), app, `Upgrade payment ${tx.reference} (₦${tx.amount / 100}) arrived but the plan was already ${app.plan}. Check and refund or apply manually.`);
+    return app;
+  }
+
+  const now = new Date();
+  const updated = await Application.findOneAndUpdate(
+    { _id: app._id, plan: m.from, 'planChanges.reference': { $ne: tx.reference } },
+    {
+      $set: { plan: m.to },
+      $push: {
+        planChanges: {
+          kind: 'upgrade', from: m.from, to: m.to, status: 'applied', amount: tx.amount / 100,
+          setupDiff: Number(m.setupDiff), proratedMonthly: Number(m.proratedMonthly),
+          reference: tx.reference, requestedAt: now, effectiveAt: now,
+        },
+        history: { status: app.status, at: now, note: `Upgraded from ${getPlan(m.from)?.name} to ${getPlan(m.to)?.name} (Paystack ${tx.reference})` },
+      },
+    },
+    { new: true }
+  );
+  if (!updated) return Application.findById(app._id);
+
+  const auth = tx.authorization?.reusable ? tx.authorization.authorization_code : updated.payment.authorizationCode;
+  if (tx.authorization?.reusable) updated.payment.authorizationCode = auth;
+  if (!updated.payment.customerCode && tx.customer?.customer_code) updated.payment.customerCode = tx.customer.customer_code;
+  const sub = await swapSubscription(updated, m.to, currentPeriod(updated, now).end, auth);
+  if (sub.code) {
+    updated.payment.subscriptionCode = sub.code;
+    updated.payment.subscriptionError = undefined;
+  } else {
+    updated.payment.subscriptionError = sub.error;
+  }
+  await updated.save();
+
+  const user = await User.findById(updated.user);
+  const change = updated.planChanges[updated.planChanges.length - 1];
+  notify(user.email, 'upgraded', user, updated, change);
+  notifyTeam('teamPlanChange', user, updated, `Upgraded ${getPlan(m.from)?.name} → ${getPlan(m.to)?.name}, paid ₦${(tx.amount / 100).toLocaleString('en-NG')}. Contact them to set up the new app features, then publish an app update.`);
+  return updated;
+}
+
+function recordPayment(tx) {
+  return tx.metadata?.kind === 'upgrade' ? recordUpgrade(tx) : recordFirstPayment(tx);
+}
+
 // Starts checkout. Returns the Paystack page to redirect to.
 router.post(
   '/initialize',
-  requireAuth,
+  requireVerified,
   ah(async (req, res) => {
     const app = await Application.findOne({ user: req.user._id }).sort({ createdAt: -1 });
     if (!app || app.status !== 'approved') throw new HttpError(409, 'Payment opens once your application is approved.');
@@ -122,8 +181,8 @@ router.get(
     if (!app || tx.metadata?.applicationId !== app._id.toString()) {
       throw new HttpError(404, 'That payment does not belong to this account.');
     }
-    const updated = (await recordFirstPayment(tx)) || app;
-    res.json({ paid: tx.status === 'success', status: tx.status, application: serializeApplication(updated) });
+    const updated = (await recordPayment(tx)) || app;
+    res.json({ paid: tx.status === 'success', status: tx.status, kind: tx.metadata?.kind || 'first', application: serializeApplication(updated) });
   })
 );
 
@@ -141,7 +200,7 @@ export const webhookHandler = [
       if (event.event === 'charge.success' && event.data?.metadata?.applicationId) {
         // Re-verify with the API rather than trusting the payload alone.
         const tx = await verifyTransaction(event.data.reference);
-        await recordFirstPayment(tx);
+        await recordPayment(tx);
       } else if (event.event === 'invoice.payment_failed') {
         const code = event.data?.subscription?.subscription_code;
         const app = code && (await Application.findOne({ 'payment.subscriptionCode': code }));

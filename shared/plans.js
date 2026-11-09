@@ -79,6 +79,17 @@ export function firstPayment(code) {
   return { setup: plan.setup, monthly: plan.monthly, total: plan.setup + plan.monthly };
 }
 
+// "50 orders per day, 100 inventory items, 1 branch"
+export function describeLimits(plan) {
+  return plan.rows
+    .slice(0, 3)
+    .map(([k, v], i) => {
+      const value = i > 0 && !/^\d/.test(v) ? v.toLowerCase() : v; // "Unlimited orders, unlimited items"
+      return `${value} ${v === '1' ? k.toLowerCase().replace(/es$|s$/, '') : k.toLowerCase()}`;
+    })
+    .join(', ');
+}
+
 export function formatNaira(n) {
   return '₦' + Number(n).toLocaleString('en-NG');
 }

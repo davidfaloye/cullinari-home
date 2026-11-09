@@ -185,7 +185,7 @@ export default function AdminDetail() {
 
           {app.payment && (
             <section className="panel">
-              <h2 className="panel__title">Payment</h2>
+              <h2 className="panel__title">First payment</h2>
               <p>
                 {formatNaira(app.payment.amount)} on {fmtDate(app.payment.paidAt)} by {app.payment.channel}
                 <br />
@@ -193,6 +193,29 @@ export default function AdminDetail() {
               </p>
               {app.payment.subscriptionCode && <p className="small">Monthly subscription: <code>{app.payment.subscriptionCode}</code></p>}
               {app.payment.subscriptionError && <p className="notice notice--warn small">Monthly charge not set up: {app.payment.subscriptionError}</p>}
+            </section>
+          )}
+
+          {(app.pendingPlan || app.planChanges.length > 0) && (
+            <section className="panel">
+              <h2 className="panel__title">Plan changes</h2>
+              {app.pendingPlan && (
+                <p className="notice notice--warn small">
+                  Moving to {getPlan(app.pendingPlan)?.name} on {fmtDate(app.pendingPlanAt)}.
+                </p>
+              )}
+              <ol className="history">
+                {app.planChanges.slice().reverse().map((c, i) => (
+                  <li key={i}>
+                    <b>{c.kind === 'upgrade' ? 'Upgrade' : 'Downgrade'}: {getPlan(c.from)?.name} → {getPlan(c.to)?.name}</b>
+                    <span className="muted small">
+                      {c.status} · {fmtDate(c.effectiveAt || c.requestedAt)}
+                      {c.amount ? ` · ${formatNaira(c.amount)}` : ''}
+                    </span>
+                    {c.reference && <code className="small">{c.reference}</code>}
+                  </li>
+                ))}
+              </ol>
             </section>
           )}
 

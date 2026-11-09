@@ -20,14 +20,30 @@ draft ──submit──▶ submitted ──approve──▶ approved ──Pays
 
 | Step | Who | Email sent |
 | --- | --- | --- |
-| Sign up | Restaurant | Welcome |
+| Sign up | Restaurant | Welcome + confirm-your-email link (48 h) |
+| Ask for a new link | Restaurant | Confirm your email |
 | Send application | Restaurant | “We received your application” + team alert |
 | Ask for changes / decline | Team | Changes needed / not approved, with the team’s note |
 | Approve | Team | “Approved: pay to start” with the amount |
 | Pay (setup + first month) | Restaurant | Payment received with the 2–5 business day window + team alert |
 | Mark live | Team | “Your app is ready” (login details stay in the dashboard, not the email) |
+| Upgrade plan (paid) | Restaurant | “You are now on …” + team alert |
+| Downgrade / cancel downgrade | Restaurant | Plan change scheduled + team alert |
 | Monthly charge fails | Paystack webhook | Payment failed |
 | Forgot password | Restaurant | Reset link (1 hour) |
+
+## Email confirmation
+
+New accounts get a confirmation link (valid 48 hours; asking for a new one cancels the old). Restaurants can fill in their application straight away, but **sending it and paying need a confirmed email**, because approvals, receipts and login details go there. Resetting a password also confirms the address. Team accounts made with `create-admin` are confirmed automatically.
+
+## Changing plan after going live
+
+From the **Your plan** section of the dashboard:
+
+- **Upgrade**: the restaurant pays the setup difference plus the rest of the current billing month at the new price, through Paystack. The plan changes the moment payment is confirmed, and the Paystack subscription moves to the new monthly price from the next renewal. The team is emailed to set up the new app features (splash screen, layouts, domain) and publish an app update.
+- **Downgrade**: no charge or refund. It is scheduled for the end of the current billing month, the subscription renews at the lower price, and the restaurant can cancel it any time before then. The plan switches automatically on that date. Nothing is deleted.
+
+Billing months run from the day of the first payment (paid 14 March → 14 Mar–14 Apr, and so on). Example: Growth → Pro with 20 of 30 days left costs ₦190,000 setup difference + ₦51,333 (₦77,000 × 20/30) = ₦241,333 today, then ₦140,000 a month.
 
 ## Plans
 
@@ -78,7 +94,6 @@ client/src/components/   application form, uploads, layout
 
 ## Not built yet
 
-- Email address verification on sign-up.
-- Plan upgrades/downgrades from the dashboard after going live.
+- The admin platform (`davidfaloye/cullinari`) needs to read each restaurant's current plan from here to enforce the new limits after a plan change.
 - Public holidays in the delivery estimate (add dates to `server/src/lib/businessDays.js`).
 - The terms page is plain-language; have it reviewed before launch.

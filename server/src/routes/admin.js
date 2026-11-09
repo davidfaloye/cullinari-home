@@ -7,6 +7,7 @@ import { serializeApplication } from '../lib/serialize.js';
 import { notify } from '../lib/emails.js';
 import { encrypt } from '../lib/crypto.js';
 import { firstPayment } from '../../../shared/plans.js';
+import { applyDuePlanChange } from '../lib/billing.js';
 
 const router = Router();
 router.use(requireAdmin);
@@ -24,6 +25,7 @@ router.get(
       filter.$or = [{ 'details.businessName': rx }, { 'details.city': rx }];
     }
     const apps = await Application.find(filter).populate('user').sort({ submittedAt: -1, updatedAt: -1 }).limit(200);
+    await Promise.all(apps.filter((a) => applyDuePlanChange(a)).map((a) => a.save()));
 
     const counts = await Application.aggregate([{ $group: { _id: '$status', n: { $sum: 1 } } }]);
     res.json({
@@ -38,6 +40,7 @@ router.get(
   ah(async (req, res) => {
     const app = await Application.findById(req.params.id).populate('user');
     if (!app) throw new HttpError(404, 'Application not found.');
+    if (applyDuePlanChange(app)) await app.save();
     res.json({ application: serializeApplication(app, { forAdmin: true }) });
   })
 );

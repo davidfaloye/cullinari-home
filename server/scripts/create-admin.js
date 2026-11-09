@@ -15,6 +15,7 @@ await mongoose.connect(config.mongoUri);
 const existing = await User.findOne({ email: email.toLowerCase() });
 if (existing) {
   existing.role = 'admin';
+  existing.emailVerifiedAt = existing.emailVerifiedAt || new Date();
   existing.passwordHash = await bcrypt.hash(password, 12);
   await existing.save();
   console.log(`Promoted ${email} to admin.`);
@@ -25,6 +26,7 @@ if (existing) {
     lastName,
     restaurantName: 'Cullinari',
     role: 'admin',
+    emailVerifiedAt: new Date(),
     passwordHash: await bcrypt.hash(password, 12),
   });
   console.log(`Created admin ${email}.`);

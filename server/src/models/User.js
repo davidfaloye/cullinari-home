@@ -9,6 +9,9 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true },
     passwordHash: { type: String, required: true },
     role: { type: String, enum: ['client', 'admin'], default: 'client' },
+    emailVerifiedAt: Date,
+    verifyTokenHash: String,
+    verifyTokenExpires: Date,
     termsAcceptedAt: Date,
     termsVersion: String,
     resetTokenHash: String,
@@ -26,6 +29,7 @@ userSchema.methods.toPublic = function toPublic() {
     email: this.email,
     phone: this.phone,
     role: this.role,
+    emailVerified: !!this.emailVerifiedAt,
   };
 };
 

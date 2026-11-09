@@ -21,7 +21,9 @@ export default function PaymentReturn() {
       try {
         const d = await api.get(`/api/payments/verify?reference=${encodeURIComponent(reference)}`);
         if (stop) return;
-        if (d.paid && d.application?.status !== 'approved') {
+        if (d.paid && d.kind === 'upgrade' && d.application?.planChanges?.some((c) => c.reference === reference)) {
+          nav(`/dashboard?upgraded=${d.application.plan}`, { replace: true });
+        } else if (d.paid && d.kind !== 'upgrade' && d.application?.status !== 'approved') {
           nav('/dashboard', { replace: true });
         } else if (d.status === 'abandoned' || d.status === 'failed') {
           setState({ phase: 'failed' });

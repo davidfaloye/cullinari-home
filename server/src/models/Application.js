@@ -85,6 +85,28 @@ const applicationSchema = new mongoose.Schema(
       subscriptionError: String,
     },
 
+    // Pending downgrade: the plan switches when the current billing month ends.
+    pendingPlan: { type: String, enum: ['starter', 'growth', 'pro', null], default: null },
+    pendingPlanAt: Date,
+    planChanges: [
+      new mongoose.Schema(
+        {
+          kind: { type: String, enum: ['upgrade', 'downgrade'] },
+          from: String,
+          to: String,
+          status: { type: String, enum: ['scheduled', 'applied', 'cancelled'] },
+          amount: Number, // naira paid, upgrades only
+          setupDiff: Number,
+          proratedMonthly: Number,
+          reference: String, // Paystack, upgrades only
+          requestedAt: { type: Date, default: Date.now },
+          effectiveAt: Date,
+          by: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        },
+        { _id: true }
+      ),
+    ],
+
     delivery: {
       etaStart: Date,
       etaEnd: Date,

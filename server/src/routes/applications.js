@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { Application } from '../models/Application.js';
 import { ah, HttpError } from '../middleware/errors.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireVerified } from '../middleware/auth.js';
 import { serializeApplication } from '../lib/serialize.js';
 import { uploader, removeFile, MAX_MENU_FILES } from '../lib/uploads.js';
 import { notify, notifyTeam } from '../lib/emails.js';
 import { getPlan, EXTRA_OPTIONS } from '../../../shared/plans.js';
+import { applyDuePlanChange } from '../lib/billing.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -18,6 +19,7 @@ async function myApplication(userId) {
   if (!app) {
     app = await Application.create({ user: userId, history: [{ status: 'draft' }] });
   }
+  if (applyDuePlanChange(app)) await app.save();
   return app;
 }
 
@@ -205,6 +207,7 @@ function missingForSubmit(app) {
 
 router.post(
   '/submit',
+  requireVerified,
   ah(async (req, res) => {
     const app = await myApplication(req.user._id);
     assertEditable(app);
