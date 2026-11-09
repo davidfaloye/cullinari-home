@@ -41,5 +41,7 @@ services:
         sync: false
       - key: MAIL_FROM
         value: Cullinari <hello@cullinari.com>
+      - key: MAIL_REPLY_TO
+        sync: false
       - key: TEAM_EMAIL
         sync: false

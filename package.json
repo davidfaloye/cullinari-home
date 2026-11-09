@@ -11,7 +11,8 @@
     "dev": "concurrently -n api,web -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w client",
     "start": "npm start -w server",
-    "create-admin": "npm run create-admin -w server --"
+    "create-admin": "npm run create-admin -w server --",
+    "test-email": "npm run test-email -w server --"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

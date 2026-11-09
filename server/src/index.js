@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import mongoose from 'mongoose';
 import { config } from './config.js';
 import { loadUser } from './middleware/auth.js';
+import { verifyMailer } from './lib/mailer.js';
 import { errorHandler, notFound } from './middleware/errors.js';
 import authRoutes from './routes/auth.js';
 import applicationRoutes from './routes/applications.js';
@@ -65,6 +66,7 @@ mongoose
   .connect(config.mongoUri)
   .then(() => {
     app.listen(config.port, () => console.log(`Cullinari API on :${config.port}`));
+    verifyMailer();
   })
   .catch((err) => {
     console.error('Could not connect to MongoDB:', err.message);

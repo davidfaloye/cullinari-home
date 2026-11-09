@@ -29,8 +29,9 @@ export const config = {
     host: env.SMTP_HOST || '',
     port: Number(env.SMTP_PORT) || 587,
     user: env.SMTP_USER || '',
-    pass: env.SMTP_PASS || '',
+    pass: (env.SMTP_PASS || '').replace(/\s+/g, ''), // Gmail shows app passwords in groups of four; spaces are dropped
     from: env.MAIL_FROM || 'Cullinari <hello@cullinari.com>',
+    replyTo: env.MAIL_REPLY_TO || '',
     team: env.TEAM_EMAIL || '',
   },
   uploadDir: path.resolve(env.UPLOAD_DIR || './uploads'),

@@ -68,6 +68,24 @@ npm run dev                 # website on :5173, API on :4000
 
 Without `SMTP_HOST`, emails are printed in the API terminal instead of being sent.
 
+## Email (Gmail)
+
+1. On the Google account that will send the emails, turn on 2-Step Verification.
+2. Create an app password at https://myaccount.google.com/apppasswords (name it "Cullinari"). Copy the 16 letters.
+3. In `.env`:
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=yourname@gmail.com
+   SMTP_PASS=abcd efgh ijkl mnop
+   MAIL_FROM="Cullinari <yourname@gmail.com>"
+   MAIL_REPLY_TO=hello@cullinari.com
+   TEAM_EMAIL=yourname@gmail.com
+   ```
+4. Check it: `npm run test-email -- you@example.com`. The API also logs `[mail] SMTP ready` or the login error when it starts.
+
+Gmail limits a personal account to about 500 recipients a day, and Google Workspace to about 2,000. That is plenty for sign-ups and notifications. If you outgrow it, or want mail to come from `@cullinari.com` with better inbox placement, switch to a transactional provider (Brevo, Resend, Zoho ZeptoMail) by changing only these variables.
+
 ## Paystack setup
 
 1. Put your secret key in `PAYSTACK_SECRET_KEY` (test key first).
