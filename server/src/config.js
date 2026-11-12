@@ -34,5 +34,10 @@ export const config = {
     replyTo: env.MAIL_REPLY_TO || '',
     team: env.TEAM_EMAIL || '',
   },
-  uploadDir: path.resolve(env.UPLOAD_DIR || './uploads'),
+  // Where uploaded logos, splash art and menus are kept.
+  //   gridfs = MongoDB (works on Render's free plan); disk = local folder (needs a Render persistent disk).
+  storage: {
+    driver: (env.STORAGE_DRIVER || 'gridfs').trim().toLowerCase(),
+    uploadDir: path.resolve(env.UPLOAD_DIR || './uploads'),
+  },
 };

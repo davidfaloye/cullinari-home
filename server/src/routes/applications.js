@@ -4,7 +4,7 @@ import { Application } from '../models/Application.js';
 import { ah, HttpError } from '../middleware/errors.js';
 import { requireAuth, requireVerified } from '../middleware/auth.js';
 import { serializeApplication } from '../lib/serialize.js';
-import { uploader, removeFile, MAX_MENU_FILES } from '../lib/uploads.js';
+import { uploader, storeFile, removeFile, MAX_MENU_FILES } from '../lib/uploads.js';
 import { notify, notifyTeam } from '../lib/emails.js';
 import { getPlan, EXTRA_OPTIONS } from '../../../shared/plans.js';
 import { applyDuePlanChange } from '../lib/billing.js';
@@ -113,6 +113,8 @@ router.put(
 );
 
 // Upload: POST /api/application/files/logo | splash | menu  (multipart field "file")
+// multer parses the file into memory; it is only sent to R2 after every check passes,
+// so a rejected upload never leaves anything behind in storage.
 router.post(
   '/files/:kind',
   (req, _res, next) => (['logo', 'splash', 'menu'].includes(req.params.kind) ? next() : next(new HttpError(404, 'Not found.'))),
@@ -120,26 +122,22 @@ router.post(
   ah(async (req, res) => {
     if (!req.file) throw new HttpError(400, 'Choose a file to upload.');
     const app = await myApplication(req.user._id);
-    try {
-      assertEditable(app);
-    } catch (err) {
-      removeFile(req.file.filename);
-      throw err;
-    }
+    assertEditable(app);
     const { kind } = req.params;
-    const entry = { filename: req.file.filename, originalName: req.file.originalname, mime: req.file.mimetype, size: req.file.size };
+
+    if (kind === 'menu' && (app.files?.menu?.length || 0) >= MAX_MENU_FILES) {
+      throw new HttpError(400, `You can upload up to ${MAX_MENU_FILES} menu files. Remove one first.`);
+    }
+    if (kind === 'splash' && !getPlan(app.plan)?.app.customSplash) {
+      throw new HttpError(400, 'A custom splash screen comes with the Growth and Pro plans.');
+    }
+
+    const filename = await storeFile(req.file, kind);
+    const entry = { filename, originalName: req.file.originalname, mime: req.file.mimetype, size: req.file.size };
 
     if (kind === 'menu') {
-      if ((app.files?.menu?.length || 0) >= MAX_MENU_FILES) {
-        removeFile(req.file.filename);
-        throw new HttpError(400, `You can upload up to ${MAX_MENU_FILES} menu files. Remove one first.`);
-      }
       app.files.menu.push(entry);
     } else {
-      if (kind === 'splash' && !getPlan(app.plan)?.app.customSplash) {
-        removeFile(req.file.filename);
-        throw new HttpError(400, 'A custom splash screen comes with the Growth and Pro plans.');
-      }
       if (app.files?.[kind]?.filename) removeFile(app.files[kind].filename);
       app.files[kind] = entry;
     }

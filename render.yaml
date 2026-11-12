@@ -2,21 +2,19 @@ services:
   - type: web
     name: cullinari-home
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
-    disk:
-      name: uploads
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: APP_URL
         value: https://cullinari.com
-      - key: UPLOAD_DIR
-        value: /var/data/uploads
+      # gridfs = uploads stored in MongoDB (free plan). Change to "disk" only after attaching
+      # a persistent disk (paid plan) and setting UPLOAD_DIR to its mount path.
+      - key: STORAGE_DRIVER
+        value: gridfs
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -45,3 +43,12 @@ services:
         sync: false
       - key: TEAM_EMAIL
         sync: false
+
+# To use a persistent disk later (requires a paid plan):
+#   1. Change `plan: free` to `plan: starter`.
+#   2. Add under the service:
+#        disk:
+#          name: uploads
+#          mountPath: /var/data
+#          sizeGB: 1
+#   3. Set STORAGE_DRIVER=disk and add UPLOAD_DIR=/var/data/uploads.
