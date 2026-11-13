@@ -19,8 +19,8 @@
   --bad-soft: #fdecea;
   --white: #ffffff;
 
-  --f-head: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
-  --f-body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-head: 'Playfair Display', serif;
+  --f-body: 'Google Sans Flex', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --r-s: 6px;
   --r-m: 10px;
