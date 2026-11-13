@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { api } from './api.js';
+import Spinner from './components/Spinner.jsx';
 
 const AuthContext = createContext(null);
 
@@ -29,7 +30,7 @@ export function useAuth() {
 export function RequireAuth({ children, admin = false }) {
   const { user } = useAuth();
   const location = useLocation();
-  if (user === undefined) return <div className="page-loading" aria-busy="true">Loading…</div>;
+  if (user === undefined) return <Spinner />;
   if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   if (admin && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return children;

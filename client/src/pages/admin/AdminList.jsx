@@ -4,6 +4,8 @@ import DashShell, { StatusBadge, STATUS_LABEL, fmtDate } from '../../components/
 import { FormError } from '../../components/Form.jsx';
 import { api } from '../../api.js';
 import { getPlan } from '../../../../shared/plans.js';
+import Spinner from '../../components/Spinner.jsx';
+
 
 // Tabs in the order the team works through them.
 const TABS = ['submitted', 'paid', 'approved', 'changes_requested', 'live', 'rejected', 'all'];
@@ -55,7 +57,7 @@ export default function AdminList() {
 
       <FormError>{error}</FormError>
       {!data ? (
-        <p className="page-loading">Loading…</p>
+        <Spinner />
       ) : data.applications.length === 0 ? (
         <p className="empty">Nothing here. {status === 'submitted' ? 'New applications will appear in this list.' : ''}</p>
       ) : (

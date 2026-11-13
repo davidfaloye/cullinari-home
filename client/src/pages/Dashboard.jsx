@@ -8,6 +8,7 @@ import { FormError } from '../components/Form.jsx';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { getPlan, formatNaira } from '../../../shared/plans.js';
+import Spinner from '../components/Spinner.jsx';
 
 // The five stages a restaurant moves through, and which statuses mean each is done.
 const STAGES = [
@@ -143,7 +144,7 @@ export default function Dashboard() {
   }, []);
 
   if (error) return <DashShell><FormError>{error}</FormError></DashShell>;
-  if (!app) return <DashShell><p className="page-loading">Loading your dashboard...</p></DashShell>;
+  if (!app) return <DashShell><Spinner label="" /></DashShell>;
 
   const plan = getPlan(app.plan);
   const s = app.status;
