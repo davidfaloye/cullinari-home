@@ -26,6 +26,9 @@ export const config = {
     },
   },
   mail: {
+    // "resend" (HTTPS API, works on Render free) or "smtp" (blocked on Render free). Defaults to resend when a key is set.
+    driver: (env.MAIL_DRIVER || (env.RESEND_API_KEY ? 'resend' : 'smtp')).trim().toLowerCase(),
+    resendKey: env.RESEND_API_KEY || '',
     host: env.SMTP_HOST || '',
     port: Number(env.SMTP_PORT) || 587,
     user: env.SMTP_USER || '',

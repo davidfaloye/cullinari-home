@@ -29,6 +29,11 @@ services:
         sync: false
       - key: PAYSTACK_PLAN_PRO
         sync: false
+      # resend = HTTPS email API (works on the free plan). smtp is blocked on Render free web services.
+      - key: MAIL_DRIVER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
       - key: SMTP_HOST
         sync: false
       - key: SMTP_PORT
