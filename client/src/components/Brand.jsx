@@ -19,15 +19,15 @@ export function AdireField({ id = 'adire', className = '' }) {
     <svg className={`adire ${className}`} aria-hidden="true" focusable="false">
       <defs>
         <pattern id={id} width="96" height="96" patternUnits="userSpaceOnUse">
-          <rect width="96" height="96" fill="var(--indigo)" />
+          <rect width="96" height="96" fill="var(--paper)" />
           {/* rings */}
           <g fill="none" stroke="var(--dye-2)" strokeWidth="2">
             <circle cx="24" cy="24" r="16" />
             <circle cx="24" cy="24" r="10" />
-            <circle cx="24" cy="24" r="4" fill="var(--dye-3)" stroke="none" />
+            <circle cx="24" cy="24" r="4" fill="var(--palm)" stroke="none" />
           </g>
           {/* ladder */}
-          <g stroke="var(--dye-2)" strokeWidth="2">
+          <g stroke="var(--dye-3)" strokeWidth="2">
             <line x1="56" y1="6" x2="56" y2="42" />
             <line x1="88" y1="6" x2="88" y2="42" />
             <line x1="56" y1="12" x2="88" y2="12" />

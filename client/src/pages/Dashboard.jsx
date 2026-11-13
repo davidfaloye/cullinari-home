@@ -143,7 +143,7 @@ export default function Dashboard() {
   }, []);
 
   if (error) return <DashShell><FormError>{error}</FormError></DashShell>;
-  if (!app) return <DashShell><p className="page-loading">Loading your application…</p></DashShell>;
+  if (!app) return <DashShell><p className="page-loading">Loading your dashboard...</p></DashShell>;
 
   const plan = getPlan(app.plan);
   const s = app.status;

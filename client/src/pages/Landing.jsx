@@ -25,8 +25,8 @@ function HeroPhone() {
       <div className="phone" aria-hidden="true">
         <div className="phone__screen">
           <div className="phone__bar">
-            <span className="phone__brand">Iya Bose Kitchen</span>
-            <span className="phone__branch">Wuse 2</span>
+            <span className="phone__branch">&#8592;</span>
+            <span className="phone__brand">Kay's Kitchen</span>
           </div>
           <div className="phone__chips">
             <span className="on">Rice</span>
